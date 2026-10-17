@@ -1,0 +1,28 @@
+# macOS Finder
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Swift Package Manager
+.build/
+Packages/
+Package.resolved
+
+# Local builds
+build/*.app
+build/*.zip
+build/dmg_stage/
+
+# Upstream Reference Repo
+reference_repo/
+
+# Xcode
+*.xcodeproj/*
+!*.xcodeproj/project.pbxproj
+!*.xcodeproj/xcshareddata/
+xcuserdata/
+DerivedData/
+
+# Logs & scratch
+*.log
+scratch/

@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <!--
+    PrivaClip is unsandboxed. Sandboxing blocks NSRunningApplication.activate()
+    on foreign applications, which causes cross-app auto-paste injection (yielding
+    activation and synthesizing ⌘V) to silently fail.
+
+    Security & Hardening Safeguards:
+      • Zero network code linked or permitted.
+      • AES-GCM-256 authenticated encryption for all on-disk history and images.
+      • Keychain hardware-isolated key marked kSecAttrSynchronizable = false.
+      • File permissions 0600, directory permissions 0700.
+      • Automatic detection and drop of transient / concealed password tokens.
+    -->
+    <key>com.apple.security.app-sandbox</key>
+    <false/>
+    <key>com.apple.security.network.client</key>
+    <false/>
+    <key>com.apple.security.network.server</key>
+    <false/>
+    <key>com.apple.security.device.audio-input</key>
+    <false/>
+    <key>com.apple.security.device.camera</key>
+    <false/>
+    <key>com.apple.security.personal-information.location</key>
+    <false/>
+    <key>com.apple.security.personal-information.addressbook</key>
+    <false/>
+    <key>com.apple.security.personal-information.calendars</key>
+    <false/>
+</dict>
+</plist>

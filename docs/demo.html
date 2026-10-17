@@ -1,0 +1,593 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PrivaClip — Native macOS Interactive Showcase</title>
+  <style>
+    :root {
+      --bg: #0d1117;
+      --panel-bg: rgba(28, 30, 36, 0.85);
+      --panel-border: rgba(255, 255, 255, 0.12);
+      --text: #f0f6fc;
+      --text-muted: #8b949e;
+      --accent: #3b82f6;
+      --accent-hover: #60a5fa;
+      --chip-bg: rgba(255, 255, 255, 0.08);
+      --chip-active: #2563eb;
+      --row-hover: rgba(255, 255, 255, 0.06);
+      --row-selected: rgba(59, 130, 246, 0.25);
+      --danger: #ef4444;
+      --success: #10b981;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, sans-serif;
+      background: radial-gradient(circle at 50% 20%, #1e293b 0%, #090d16 100%);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 30px 20px;
+    }
+
+    .header {
+      text-align: center;
+      margin-bottom: 24px;
+      max-width: 680px;
+    }
+    .header h1 {
+      font-size: 2.2rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+    }
+    .header p {
+      color: var(--text-muted);
+      font-size: 1rem;
+      line-height: 1.5;
+    }
+
+    .badge-bar {
+      display: flex;
+      gap: 8px;
+      justify-content: center;
+      margin-top: 12px;
+      flex-wrap: wrap;
+    }
+    .badge {
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      padding: 4px 10px;
+      border-radius: 999px;
+      font-size: 0.75rem;
+      font-weight: 500;
+      color: #94a3b8;
+    }
+
+    /* Simulation Control Toolbar */
+    .controls-toolbar {
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid var(--panel-border);
+      padding: 12px 18px;
+      border-radius: 14px;
+      margin-bottom: 24px;
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+    .btn {
+      background: rgba(255, 255, 255, 0.08);
+      color: var(--text);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      padding: 6px 12px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 0.82rem;
+      font-weight: 500;
+      transition: all 0.15s ease;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .btn:hover { background: rgba(255, 255, 255, 0.14); }
+    .btn-record {
+      background: #dc2626;
+      border-color: #ef4444;
+      color: white;
+    }
+    .btn-record:hover { background: #b91c1c; }
+    .btn-record.recording {
+      animation: pulse 1.5s infinite;
+      background: #991b1b;
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.6; }
+    }
+
+    /* macOS Window Shell */
+    .window-container {
+      width: 480px;
+      background: var(--panel-bg);
+      backdrop-filter: blur(25px);
+      -webkit-backdrop-filter: blur(25px);
+      border: 1px solid var(--panel-border);
+      border-radius: 16px;
+      box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.7), 0 0 0 1px rgba(255, 255, 255, 0.05);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Window Header / Search */
+    .panel-header {
+      padding: 14px 16px 10px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    }
+    .search-bar {
+      position: relative;
+      display: flex;
+      align-items: center;
+    }
+    .search-icon {
+      position: absolute;
+      left: 10px;
+      color: var(--text-muted);
+      font-size: 0.85rem;
+    }
+    .search-input {
+      width: 100%;
+      background: rgba(0, 0, 0, 0.25);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 8px;
+      padding: 8px 12px 8px 32px;
+      color: var(--text);
+      font-size: 0.85rem;
+      outline: none;
+    }
+    .search-input:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.3);
+    }
+
+    /* Tabs (History vs Snippets) */
+    .mode-tabs {
+      display: flex;
+      gap: 4px;
+      margin-top: 10px;
+      background: rgba(0, 0, 0, 0.2);
+      padding: 3px;
+      border-radius: 8px;
+    }
+    .tab-btn {
+      flex: 1;
+      padding: 5px;
+      border: none;
+      background: transparent;
+      color: var(--text-muted);
+      font-size: 0.78rem;
+      font-weight: 500;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .tab-btn.active {
+      background: rgba(255, 255, 255, 0.12);
+      color: var(--text);
+    }
+
+    /* Filter Chips */
+    .filter-chips {
+      display: flex;
+      gap: 6px;
+      padding: 8px 16px;
+      overflow-x: auto;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+    }
+    .chip {
+      background: var(--chip-bg);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      color: var(--text-muted);
+      padding: 4px 10px;
+      border-radius: 999px;
+      font-size: 0.72rem;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: all 0.15s;
+    }
+    .chip:hover { color: var(--text); background: rgba(255, 255, 255, 0.12); }
+    .chip.active {
+      background: var(--chip-active);
+      color: white;
+      border-color: var(--accent);
+    }
+
+    /* History List */
+    .clip-list {
+      max-height: 380px;
+      overflow-y: auto;
+      padding: 6px 8px;
+    }
+    .clip-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 10px;
+      border-radius: 8px;
+      cursor: pointer;
+      margin-bottom: 2px;
+      transition: background 0.1s;
+    }
+    .clip-row:hover { background: var(--row-hover); }
+    .clip-row.selected {
+      background: var(--row-selected);
+      outline: 1px solid rgba(59, 130, 246, 0.4);
+    }
+    .clip-index {
+      font-size: 0.7rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      width: 16px;
+      text-align: center;
+    }
+    .clip-badge {
+      font-size: 0.68rem;
+      padding: 2px 6px;
+      border-radius: 4px;
+      background: rgba(255, 255, 255, 0.08);
+      color: #94a3b8;
+      font-weight: 500;
+    }
+    .swatch {
+      width: 16px;
+      height: 16px;
+      border-radius: 4px;
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      flex-shrink: 0;
+    }
+    .clip-content {
+      flex: 1;
+      font-size: 0.82rem;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      color: var(--text);
+    }
+    .clip-content.code {
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      color: #7dd3fc;
+    }
+    .clip-actions {
+      display: flex;
+      gap: 6px;
+      opacity: 0.4;
+      transition: opacity 0.15s;
+    }
+    .clip-row:hover .clip-actions { opacity: 1; }
+    .action-icon {
+      font-size: 0.75rem;
+      cursor: pointer;
+      padding: 3px;
+    }
+    .action-icon:hover { color: var(--accent); }
+
+    /* Footer info */
+    .panel-footer {
+      padding: 8px 16px;
+      border-top: 1px solid rgba(255, 255, 255, 0.06);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.7rem;
+      color: var(--text-muted);
+      background: rgba(0, 0, 0, 0.15);
+    }
+    .shortcut-hint {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .kbd {
+      background: rgba(255, 255, 255, 0.1);
+      padding: 1px 5px;
+      border-radius: 4px;
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      font-size: 0.65rem;
+      font-weight: 600;
+    }
+
+    /* Notification Toast */
+    .toast {
+      position: fixed;
+      bottom: 24px;
+      background: rgba(15, 23, 42, 0.95);
+      border: 1px solid var(--accent);
+      color: var(--text);
+      padding: 10px 18px;
+      border-radius: 10px;
+      font-size: 0.82rem;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+      opacity: 0;
+      transform: translateY(10px);
+      transition: all 0.2s ease;
+      pointer-events: none;
+    }
+    .toast.show {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  </style>
+</head>
+<body>
+
+  <div class="header">
+    <h1>🛡️ PrivaClip</h1>
+    <p>Privacy-First, Native Apple Silicon Clipboard Manager for macOS</p>
+    <div class="badge-bar">
+      <span class="badge">Hardware AES-GCM-256</span>
+      <span class="badge">Zero Network</span>
+      <span class="badge">Password Shield</span>
+      <span class="badge">Smart Collections</span>
+      <span class="badge">Snippet Vault</span>
+    </div>
+  </div>
+
+  <!-- Interactive Controls to simulate copy events -->
+  <div class="controls-toolbar">
+    <span style="font-size: 0.8rem; font-weight: 600; color: #94a3b8;">Simulate Copy:</span>
+    <button class="btn" onclick="simulateCopy('https://gitlab.com/privaclip/macos', 'link')">🔗 URL</button>
+    <button class="btn" onclick="simulateCopy('func decrypt(data: Data) throws -> ClipItem { ... }', 'code')">💻 Swift Code</button>
+    <button class="btn" onclick="simulateCopy('#3B82F6', 'color')">🎨 Hex Color</button>
+    <button class="btn" onclick="simulateCopy('security-audits@privaclip.org', 'email')">✉️ Email</button>
+    <button class="btn" onclick="simulateTransientDrop()">🔒 Password (Drops!)</button>
+    <button id="recordBtn" class="btn btn-record" onclick="toggleRecording()">🎥 Record Video</button>
+  </div>
+
+  <!-- Simulated macOS AppKit Window -->
+  <div class="window-container" id="windowContainer">
+    <div class="panel-header">
+      <div class="search-bar">
+        <span class="search-icon">🔍</span>
+        <input type="text" id="searchInput" class="search-input" placeholder="Search clipboard history... (⌘F)" oninput="filterClips()">
+      </div>
+      <div class="mode-tabs">
+        <button class="tab-btn active" id="tabHistory" onclick="switchTab('history')">History (4)</button>
+        <button class="tab-btn" id="tabSnippets" onclick="switchTab('snippets')">Snippet Vault (3)</button>
+      </div>
+    </div>
+
+    <!-- Filter chips -->
+    <div class="filter-chips" id="filterChips">
+      <span class="chip active" onclick="setFilter('all', this)">All</span>
+      <span class="chip" onclick="setFilter('link', this)">Links</span>
+      <span class="chip" onclick="setFilter('code', this)">Code</span>
+      <span class="chip" onclick="setFilter('color', this)">Colors</span>
+      <span class="chip" onclick="setFilter('email', this)">Emails</span>
+      <span class="chip" onclick="setFilter('pinned', this)">📌 Pinned</span>
+    </div>
+
+    <!-- List -->
+    <div class="clip-list" id="clipList">
+      <!-- Items dynamically populated -->
+    </div>
+
+    <div class="panel-footer">
+      <div class="shortcut-hint">
+        <span class="kbd">↑</span><span class="kbd">↓</span> Navigate
+        <span class="kbd" style="margin-left: 6px;">Return</span> Auto-Paste
+        <span class="kbd" style="margin-left: 6px;">⌘C</span> Copy
+      </div>
+      <span style="color: #10b981;">● AES-GCM Encrypted</span>
+    </div>
+  </div>
+
+  <div class="toast" id="toast">Copied to clipboard</div>
+
+  <script>
+    let clips = [
+      { id: 1, text: "https://gitlab.com/privaclip/macos", type: "link", pinned: true, label: "Link" },
+      { id: 2, text: "#3B82F6", type: "color", colorHex: "#3B82F6", pinned: false, label: "Color" },
+      { id: 3, text: "func secureHash(data: Data) -> String { SHA256.hash(data: data).description }", type: "code", pinned: false, label: "Swift" },
+      { id: 4, text: "team-lead@security.apple.com", type: "email", pinned: false, label: "Email" }
+    ];
+
+    let snippets = [
+      { id: 101, title: "Daily Standup Template", text: "Today's Status ({date}): Working on PrivaClip encrypted backups." },
+      { id: 102, title: "GitLab Issue Reply", text: "Thank you for reporting. This is confirmed local-only with zero network footprint." },
+      { id: 103, title: "Markdown Image", text: "![Preview](https://gitlab.com/privaclip/assets/{clipboard}.png)" }
+    ];
+
+    let currentTab = 'history';
+    let currentFilter = 'all';
+    let selectedIndex = 0;
+
+    function render() {
+      const listEl = document.getElementById('clipList');
+      listEl.innerHTML = '';
+
+      if (currentTab === 'history') {
+        const query = document.getElementById('searchInput').value.toLowerCase();
+        const filtered = clips.filter(c => {
+          if (currentFilter === 'pinned' && !c.pinned) return false;
+          if (currentFilter !== 'all' && currentFilter !== 'pinned' && c.type !== currentFilter) return false;
+          if (query && !c.text.toLowerCase().includes(query)) return false;
+          return true;
+        });
+
+        if (filtered.length === 0) {
+          listEl.innerHTML = `<div style="padding: 30px; text-align: center; color: var(--text-muted); font-size: 0.85rem;">No clipboard matches found</div>`;
+          return;
+        }
+
+        filtered.forEach((clip, idx) => {
+          const row = document.createElement('div');
+          row.className = `clip-row ${idx === selectedIndex ? 'selected' : ''}`;
+          row.onclick = () => { selectRow(idx); copyClip(clip.text); };
+
+          let visual = `<span class="clip-badge">${clip.label}</span>`;
+          if (clip.type === 'color') {
+            visual = `<div class="swatch" style="background: ${clip.colorHex};"></div>`;
+          }
+
+          row.innerHTML = `
+            <span class="clip-index">${idx + 1}</span>
+            ${visual}
+            <span class="clip-content ${clip.type === 'code' ? 'code' : ''}">${escapeHtml(clip.text)}</span>
+            <div class="clip-actions">
+              <span class="action-icon" title="Toggle Pin" onclick="event.stopPropagation(); togglePin(${clip.id})">${clip.pinned ? '📌' : '📍'}</span>
+              <span class="action-icon" title="Delete" onclick="event.stopPropagation(); deleteClip(${clip.id})">✕</span>
+            </div>
+          `;
+          listEl.appendChild(row);
+        });
+      } else {
+        // Snippets tab
+        snippets.forEach((snip, idx) => {
+          const row = document.createElement('div');
+          row.className = `clip-row ${idx === selectedIndex ? 'selected' : ''}`;
+          row.onclick = () => { selectRow(idx); copyClip(expandSnippet(snip.text)); };
+          row.innerHTML = `
+            <span class="clip-badge" style="background: rgba(59, 130, 246, 0.2); color: #60a5fa;">Snippet</span>
+            <div style="flex:1; overflow:hidden;">
+              <div style="font-weight:600; font-size:0.8rem;">${escapeHtml(snip.title)}</div>
+              <div class="clip-content" style="color:var(--text-muted); font-size:0.75rem;">${escapeHtml(expandSnippet(snip.text))}</div>
+            </div>
+            <span class="action-icon">📋</span>
+          `;
+          listEl.appendChild(row);
+        });
+      }
+    }
+
+    function expandSnippet(template) {
+      const now = new Date();
+      const dateStr = now.toISOString().split('T')[0];
+      return template.replace('{date}', dateStr).replace('{clipboard}', 'privaclip-v1.0');
+    }
+
+    function escapeHtml(str) {
+      return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    }
+
+    function selectRow(idx) {
+      selectedIndex = idx;
+      render();
+    }
+
+    function copyClip(text) {
+      navigator.clipboard?.writeText(text);
+      showToast(`Pasted into active app: "${text.substring(0, 32)}..."`);
+    }
+
+    function togglePin(id) {
+      const c = clips.find(item => item.id === id);
+      if (c) c.pinned = !c.pinned;
+      render();
+    }
+
+    function deleteClip(id) {
+      clips = clips.filter(item => item.id !== id);
+      render();
+      showToast("Entry removed and deleted from encrypted vault");
+    }
+
+    function simulateCopy(text, type) {
+      clips.unshift({
+        id: Date.now(),
+        text: text,
+        type: type,
+        colorHex: type === 'color' ? text : null,
+        pinned: false,
+        label: type.toUpperCase()
+      });
+      selectedIndex = 0;
+      render();
+      showToast(`Captured new ${type}: encrypted with AES-256-GCM`);
+    }
+
+    function simulateTransientDrop() {
+      showToast("🔒 Password Manager detected (org.nspasteboard.TransientType): DISCARDED & DROPPED");
+    }
+
+    function switchTab(tab) {
+      currentTab = tab;
+      document.getElementById('tabHistory').classList.toggle('active', tab === 'history');
+      document.getElementById('tabSnippets').classList.toggle('active', tab === 'snippets');
+      document.getElementById('filterChips').style.display = tab === 'history' ? 'flex' : 'none';
+      selectedIndex = 0;
+      render();
+    }
+
+    function setFilter(filter, el) {
+      currentFilter = filter;
+      document.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
+      el.classList.add('active');
+      selectedIndex = 0;
+      render();
+    }
+
+    function filterClips() {
+      selectedIndex = 0;
+      render();
+    }
+
+    function showToast(msg) {
+      const t = document.getElementById('toast');
+      t.innerText = msg;
+      t.classList.add('show');
+      setTimeout(() => t.classList.remove('show'), 2800);
+    }
+
+    // Live Video Screen Recorder using browser MediaRecorder
+    let mediaRecorder;
+    let recordedChunks = [];
+    let isRecording = false;
+
+    async function toggleRecording() {
+      const btn = document.getElementById('recordBtn');
+      if (!isRecording) {
+        try {
+          const stream = await navigator.mediaDevices.getDisplayMedia({ video: true });
+          recordedChunks = [];
+          mediaRecorder = new MediaRecorder(stream, { mimeType: 'video/webm; codecs=vp9' });
+
+          mediaRecorder.ondataavailable = e => { if (e.data.size > 0) recordedChunks.push(e.data); };
+          mediaRecorder.onstop = () => {
+            const blob = new Blob(recordedChunks, { type: 'video/webm' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'PrivaClip-Showcase.webm';
+            a.click();
+            showToast("🎥 Video recording saved: PrivaClip-Showcase.webm");
+          };
+
+          mediaRecorder.start();
+          isRecording = true;
+          btn.innerText = "⏹ Stop Recording";
+          btn.classList.add('recording');
+        } catch (err) {
+          showToast("Recording cancelled or display access denied");
+        }
+      } else {
+        mediaRecorder.stop();
+        mediaRecorder.stream.getTracks().forEach(t => t.stop());
+        isRecording = false;
+        btn.innerText = "🎥 Record Video";
+        btn.classList.remove('recording');
+      }
+    }
+
+    render();
+  </script>
+</body>
+</html>
