@@ -146,4 +146,50 @@ public final class SnippetsViewModel: ObservableObject {
             self?.statusMessage = nil
         }
     }
+
+    // MARK: - Keyboard Navigation
+
+    public func selectNext() {
+        let list = filteredSnippets
+        guard !list.isEmpty else { return }
+        if let current = selectedSnippet, let idx = list.firstIndex(where: { $0.id == current.id }) {
+            let nextIdx = min(idx + 1, list.count - 1)
+            selectedSnippet = list[nextIdx]
+        } else {
+            selectedSnippet = list.first
+        }
+    }
+
+    public func selectPrevious() {
+        let list = filteredSnippets
+        guard !list.isEmpty else { return }
+        if let current = selectedSnippet, let idx = list.firstIndex(where: { $0.id == current.id }) {
+            let prevIdx = max(idx - 1, 0)
+            selectedSnippet = list[prevIdx]
+        } else {
+            selectedSnippet = list.last
+        }
+    }
+
+    public func triggerSelectedItem(onClose: () -> Void) {
+        let target = selectedSnippet ?? filteredSnippets.first
+        guard let snippet = target else { return }
+        onClose()
+        triggerSnippet(snippet)
+    }
+
+    public func deleteSelectedItem() {
+        guard let current = selectedSnippet else { return }
+        let list = filteredSnippets
+        if let idx = list.firstIndex(where: { $0.id == current.id }) {
+            deleteSnippet(id: current.id)
+            let updated = filteredSnippets
+            if !updated.isEmpty {
+                let nextIdx = min(idx, updated.count - 1)
+                selectedSnippet = updated[nextIdx]
+            } else {
+                selectedSnippet = nil
+            }
+        }
+    }
 }

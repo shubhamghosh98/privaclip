@@ -2,8 +2,8 @@ import Foundation
 import AppKit
 import PrivaClipCore
 
-/// Controls the system status item in the macOS menu bar and its context menu.
-public final class MenuBarController: NSObject, @unchecked Sendable {
+@MainActor
+public final class MenuBarController: NSObject {
     private let statusItem: NSStatusItem
     private let historyVM: HistoryViewModel
     private let snippetsVM: SnippetsViewModel

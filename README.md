@@ -30,18 +30,18 @@ Most mainstream clipboard managers store history in unencrypted SQLite/JSON data
 
 ## ⚔️ How PrivaClip Compares
 
-| Feature / Guarantee | Maccy | Paste / Pastebot | Raycast / Alfred | Clip-Board | **PrivaClip** |
-|---|:---:|:---:|:---:|:---:|:---:|
-| **At-Rest Encryption** | ❌ Plaintext SQLite | ❌ Vendor Cloud / Plaintext | ❌ Plaintext local store | ✅ AES-GCM | ✅ **AES-256-GCM** |
-| **Keychain Device-Locked** | ❌ None | ❌ None | ❌ None | ✅ Yes | ✅ **Yes (`kSecAttrSynchronizable=false`)** |
-| **Zero Network (Auditable)** | ⚠️ Unchecked | ❌ Cloud Sync / Telemetry | ❌ Cloud Sync / Telemetry | ✅ Zero Net | ✅ **Zero Net (Kernel Entitlement Block)** |
-| **Password Shield** | ⚠️ Partial | ⚠️ Partial | ⚠️ Partial | ✅ Yes | ✅ **Strict Transient Marker Dropping** |
-| **Smart Collections** | ❌ None | ⚠️ Basic | ⚠️ Add-on script | ❌ None | ✅ **URLs, Code, Emails, Colors, Images** |
-| **Live Hex Color Swatches** | ❌ None | ❌ None | ❌ None | ❌ None | ✅ **Live Swatches in History** |
-| **Snippet Vault with Tokens** | ❌ None | ⚠️ Separate App | ⚠️ Add-on script | ❌ None | ✅ **Templates (`{date}`, `{clipboard}`)** |
-| **App Exclusion Blacklist** | ⚠️ Basic | ❌ None | ⚠️ Configurable | ❌ None | ✅ **Bundle ID Blacklisting** |
-| **Encrypted Portable Backups** | ❌ None | ❌ Cloud only | ❌ None | ❌ None | ✅ **PBKDF2 + AES-GCM `.privaclip`** |
-| **Manual Paste Fallback** | ⚠️ Fails | ⚠️ Fails | ⚠️ Fails | ⚠️ Fails | ✅ **Copy Fallback + HUD Alert** |
+| Feature / Guarantee | Maccy | Paste / Pastebot | Raycast / Alfred | **PrivaClip** |
+|---|:---:|:---:|:---:|:---:|
+| **At-Rest Encryption** | ❌ Plaintext SQLite | ❌ Vendor Cloud / Plaintext | ❌ Plaintext local store | ✅ **AES-256-GCM** |
+| **Keychain Device-Locked** | ❌ None | ❌ None | ❌ None | ✅ **Yes (`kSecAttrSynchronizable=false`)** |
+| **Zero Network (Auditable)** | ⚠️ Unchecked | ❌ Cloud Sync / Telemetry | ❌ Cloud Sync / Telemetry | ✅ **Zero Net (Kernel Entitlement Block)** |
+| **Password Shield** | ⚠️ Partial | ⚠️ Partial | ⚠️ Partial | ✅ **Strict Transient Marker Dropping** |
+| **Smart Collections** | ❌ None | ⚠️ Basic | ⚠️ Add-on script | ✅ **URLs, Code, Emails, Colors, Images** |
+| **Live Hex Color Swatches** | ❌ None | ❌ None | ❌ None | ✅ **Live Swatches in History** |
+| **Snippet Vault with Tokens** | ❌ None | ⚠️ Separate App | ⚠️ Add-on script | ✅ **Templates (`{date}`, `{clipboard}`)** |
+| **App Exclusion Blacklist** | ⚠️ Basic | ❌ None | ⚠️ Configurable | ✅ **Bundle ID Blacklisting** |
+| **Encrypted Portable Backups** | ❌ None | ❌ Cloud only | ❌ None | ✅ **PBKDF2 + AES-GCM `.privaclip`** |
+| **Manual Paste Fallback** | ⚠️ Fails | ⚠️ Fails | ⚠️ Fails | ✅ **Copy Fallback + HUD Alert** |
 
 ---
 
@@ -151,7 +151,6 @@ codesign -d --entitlements - /Applications/PrivaClip.app
 
 ---
 
-## 📄 License & Attribution
+## 📄 License
 
-- **PrivaClip** is released under the **MIT License**. Copyright © 2026.
-- Inspired by concepts in `Clip-Board` (MIT License, Copyright © 2026 Siddharth Sangwan). See [ATTRIBUTION.md](ATTRIBUTION.md) for details.
+PrivaClip is open-source software released under the [MIT License](LICENSE). Copyright © 2026.

@@ -245,6 +245,74 @@ public final class HistoryViewModel: ObservableObject {
         }
     }
 
+    // MARK: - Keyboard Navigation & Actions
+
+    public func selectNext() {
+        let list = filteredItems
+        guard !list.isEmpty else { return }
+        if let currentID = selectedID, let idx = list.firstIndex(where: { $0.id == currentID }) {
+            let nextIdx = min(idx + 1, list.count - 1)
+            selectedID = list[nextIdx].id
+        } else {
+            selectedID = list.first?.id
+        }
+    }
+
+    public func selectPrevious() {
+        let list = filteredItems
+        guard !list.isEmpty else { return }
+        if let currentID = selectedID, let idx = list.firstIndex(where: { $0.id == currentID }) {
+            let prevIdx = max(idx - 1, 0)
+            selectedID = list[prevIdx].id
+        } else {
+            selectedID = list.last?.id
+        }
+    }
+
+    public func pasteSelectedItem(onClose: () -> Void) {
+        let targetItem: ClipItem?
+        if let currentID = selectedID, let match = items.first(where: { $0.id == currentID }) {
+            targetItem = match
+        } else {
+            targetItem = filteredItems.first
+        }
+        guard let item = targetItem else { return }
+        onClose()
+        pasteItem(item)
+    }
+
+    public func copySelectedItemOnly(onClose: () -> Void) {
+        let targetItem: ClipItem?
+        if let currentID = selectedID, let match = items.first(where: { $0.id == currentID }) {
+            targetItem = match
+        } else {
+            targetItem = filteredItems.first
+        }
+        guard let item = targetItem else { return }
+        onClose()
+        copyItemOnly(item)
+    }
+
+    public func deleteSelectedItem() {
+        guard let currentID = selectedID else { return }
+        let list = filteredItems
+        if let idx = list.firstIndex(where: { $0.id == currentID }) {
+            deleteItem(currentID)
+            let updatedList = filteredItems
+            if !updatedList.isEmpty {
+                let nextIdx = min(idx, updatedList.count - 1)
+                selectedID = updatedList[nextIdx].id
+            } else {
+                selectedID = nil
+            }
+        }
+    }
+
+    public func togglePinSelectedItem() {
+        guard let currentID = selectedID else { return }
+        togglePin(currentID)
+    }
+
     // MARK: - Selection Mode
 
     public func enterMultiSelectMode(initialID: UUID? = nil) {

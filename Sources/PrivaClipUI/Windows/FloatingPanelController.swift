@@ -2,13 +2,22 @@ import SwiftUI
 import AppKit
 import PrivaClipCore
 
-/// Controls the floating HUD panel window that appears near the mouse or status bar.
-public final class FloatingPanelController: NSObject, NSWindowDelegate, @unchecked Sendable {
+/// Custom NSPanel subclass that explicitly allows becoming key window so it can receive all keyboard events.
+final class KeyFocusablePanel: NSPanel {
+    override var canBecomeKey: Bool { true }
+    override var canBecomeMain: Bool { true }
+}
+
+@MainActor
+public final class FloatingPanelController: NSObject, NSWindowDelegate {
     public static let shared = FloatingPanelController()
 
-    private var panel: NSPanel?
+    private var panel: KeyFocusablePanel?
     private var outsideClickMonitor: Any?
+    private var keyDownMonitor: Any?
     private var preferencesWindow: NSWindow?
+    private weak var historyVM: HistoryViewModel?
+    private weak var snippetsVM: SnippetsViewModel?
 
     public override init() {
         super.init()
@@ -16,6 +25,8 @@ public final class FloatingPanelController: NSObject, NSWindowDelegate, @uncheck
 
     /// Prewarms the panel off-screen so the first invocation has near-zero latency.
     public func prewarm(historyVM: HistoryViewModel, snippetsVM: SnippetsViewModel) {
+        self.historyVM = historyVM
+        self.snippetsVM = snippetsVM
         let p = ensurePanel(historyVM: historyVM, snippetsVM: snippetsVM)
         p.setFrameOrigin(NSPoint(x: -20000, y: -20000))
         p.alphaValue = 0
@@ -37,6 +48,17 @@ public final class FloatingPanelController: NSObject, NSWindowDelegate, @uncheck
 
     /// Presents the panel anchored near screenPoint.
     public func show(at screenPoint: NSPoint, historyVM: HistoryViewModel, snippetsVM: SnippetsViewModel) {
+        self.historyVM = historyVM
+        self.snippetsVM = snippetsVM
+
+        // Auto-select first item if none is currently selected
+        if historyVM.selectedID == nil {
+            historyVM.selectedID = historyVM.filteredItems.first?.id
+        }
+        if snippetsVM.selectedSnippet == nil {
+            snippetsVM.selectedSnippet = snippetsVM.filteredSnippets.first
+        }
+
         let p = ensurePanel(historyVM: historyVM, snippetsVM: snippetsVM)
         positionPanel(p, near: screenPoint)
         p.alphaValue = 1
@@ -45,11 +67,13 @@ public final class FloatingPanelController: NSObject, NSWindowDelegate, @uncheck
         p.makeKeyAndOrderFront(nil)
 
         installOutsideClickMonitor()
+        installKeyDownMonitor()
     }
 
     public func close() {
         panel?.orderOut(nil)
         removeOutsideClickMonitor()
+        removeKeyDownMonitor()
     }
 
     public func openPreferences(historyVM: HistoryViewModel, snippetsVM: SnippetsViewModel) {
@@ -77,7 +101,7 @@ public final class FloatingPanelController: NSObject, NSWindowDelegate, @uncheck
         win.makeKeyAndOrderFront(nil)
     }
 
-    private func ensurePanel(historyVM: HistoryViewModel, snippetsVM: SnippetsViewModel) -> NSPanel {
+    private func ensurePanel(historyVM: HistoryViewModel, snippetsVM: SnippetsViewModel) -> KeyFocusablePanel {
         if let existing = panel { return existing }
 
         let rootView = HistoryPanelView(
@@ -91,7 +115,7 @@ public final class FloatingPanelController: NSObject, NSWindowDelegate, @uncheck
         let hosting = NSHostingView(rootView: rootView)
         hosting.translatesAutoresizingMaskIntoConstraints = false
 
-        let p = NSPanel(
+        let p = KeyFocusablePanel(
             contentRect: NSRect(x: 0, y: 0, width: PrivaClipTheme.panelWidth, height: PrivaClipTheme.panelHeight),
             styleMask: [.nonactivatingPanel, .fullSizeContentView, .titled],
             backing: .buffered,
@@ -110,6 +134,7 @@ public final class FloatingPanelController: NSObject, NSWindowDelegate, @uncheck
         p.hasShadow = false
         p.backgroundColor = .clear
         p.animationBehavior = .none
+        p.becomesKeyOnlyIfNeeded = false
         p.delegate = self
         p.isReleasedWhenClosed = false
 
@@ -149,6 +174,8 @@ public final class FloatingPanelController: NSObject, NSWindowDelegate, @uncheck
         panel.setFrameOrigin(origin)
     }
 
+    // MARK: - Event Monitors
+
     private func installOutsideClickMonitor() {
         removeOutsideClickMonitor()
         outsideClickMonitor = NSEvent.addGlobalMonitorForEvents(
@@ -162,6 +189,126 @@ public final class FloatingPanelController: NSObject, NSWindowDelegate, @uncheck
         if let monitor = outsideClickMonitor {
             NSEvent.removeMonitor(monitor)
             outsideClickMonitor = nil
+        }
+    }
+
+    private func installKeyDownMonitor() {
+        removeKeyDownMonitor()
+        keyDownMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
+            guard let self, let p = self.panel, p.isVisible else { return event }
+
+            let keyCode = event.keyCode
+            let flags = event.modifierFlags.intersection(.deviceIndependentFlagsMask)
+
+            // 1. ESCAPE (keyCode 53)
+            if keyCode == 53 {
+                if let hvm = self.historyVM, hvm.selectedTab == .history, !hvm.searchText.isEmpty {
+                    hvm.searchText = ""
+                    return nil
+                }
+                if let svm = self.snippetsVM, let hvm = self.historyVM, hvm.selectedTab == .snippets, !svm.searchText.isEmpty {
+                    svm.searchText = ""
+                    return nil
+                }
+                self.close()
+                return nil
+            }
+
+            // 2. UP ARROW (keyCode 126)
+            if keyCode == 126 {
+                if let hvm = self.historyVM, hvm.selectedTab == .history {
+                    hvm.selectPrevious()
+                    return nil
+                } else if let svm = self.snippetsVM {
+                    svm.selectPrevious()
+                    return nil
+                }
+            }
+
+            // 3. DOWN ARROW (keyCode 125)
+            if keyCode == 125 {
+                if let hvm = self.historyVM, hvm.selectedTab == .history {
+                    hvm.selectNext()
+                    return nil
+                } else if let svm = self.snippetsVM {
+                    svm.selectNext()
+                    return nil
+                }
+            }
+
+            // 4. RETURN / ENTER (keyCode 36)
+            if keyCode == 36 && flags.isEmpty {
+                if let hvm = self.historyVM, hvm.selectedTab == .history {
+                    hvm.pasteSelectedItem(onClose: { [weak self] in self?.close() })
+                    return nil
+                } else if let svm = self.snippetsVM {
+                    svm.triggerSelectedItem(onClose: { [weak self] in self?.close() })
+                    return nil
+                }
+            }
+
+            // 5. DELETE (51) / FORWARD DELETE (117)
+            if keyCode == 51 || keyCode == 117 {
+                let searchEmpty: Bool
+                if let hvm = self.historyVM, hvm.selectedTab == .history {
+                    searchEmpty = hvm.searchText.isEmpty
+                } else if let svm = self.snippetsVM {
+                    searchEmpty = svm.searchText.isEmpty
+                } else {
+                    searchEmpty = true
+                }
+
+                if flags.contains(.command) || searchEmpty {
+                    if let hvm = self.historyVM, hvm.selectedTab == .history {
+                        hvm.deleteSelectedItem()
+                        return nil
+                    } else if let svm = self.snippetsVM {
+                        svm.deleteSelectedItem()
+                        return nil
+                    }
+                }
+            }
+
+            // 6. ⌘C (keyCode 8) -> Copy selected item only
+            if keyCode == 8 && flags.contains(.command) {
+                if let hvm = self.historyVM, hvm.selectedTab == .history {
+                    hvm.copySelectedItemOnly(onClose: { [weak self] in self?.close() })
+                    return nil
+                }
+            }
+
+            // 7. ⌘P (keyCode 35) -> Toggle pin on selected item
+            if keyCode == 35 && flags.contains(.command) {
+                if let hvm = self.historyVM, hvm.selectedTab == .history {
+                    hvm.togglePinSelectedItem()
+                    return nil
+                }
+            }
+
+            // 8. ⌘, (keyCode 43) -> Open preferences
+            if keyCode == 43 && flags.contains(.command) {
+                if let hvm = self.historyVM, let svm = self.snippetsVM {
+                    self.openPreferences(historyVM: hvm, snippetsVM: svm)
+                    return nil
+                }
+            }
+
+            // 9. Tab (keyCode 48) -> Switch between History and Snippets tabs
+            if keyCode == 48 && flags.isEmpty {
+                if let hvm = self.historyVM {
+                    hvm.selectedTab = (hvm.selectedTab == .history ? .snippets : .history)
+                    return nil
+                }
+            }
+
+            return event
+        }
+    }
+
+    private func removeKeyDownMonitor() {
+        if let monitor = keyDownMonitor {
+            NSEvent.removeMonitor(monitor)
+            keyDownMonitor = nil
         }
     }
 }

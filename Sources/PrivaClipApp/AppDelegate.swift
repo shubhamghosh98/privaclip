@@ -5,6 +5,7 @@ import PrivaClipUI
 import os
 
 /// Application lifecycle coordinator and service bootstrapper.
+@MainActor
 public final class AppDelegate: NSObject, NSApplicationDelegate {
     private let logger = Logger(subsystem: "com.privaclip.app", category: "lifecycle")
 
@@ -71,13 +72,15 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
     public func registerHotkey() {
         let config = AppPreferences.shared.hotkey
         HotkeyManager.shared.register(keyCode: config.keyCode, modifiers: config.modifiers) { [weak self] in
-            guard let self else { return }
-            ApplicationTracker.shared.captureFrontmost()
-            FloatingPanelController.shared.toggle(
-                at: NSEvent.mouseLocation,
-                historyVM: self.historyVM,
-                snippetsVM: self.snippetsVM
-            )
+            DispatchQueue.main.async {
+                guard let self else { return }
+                ApplicationTracker.shared.captureFrontmost()
+                FloatingPanelController.shared.toggle(
+                    at: NSEvent.mouseLocation,
+                    historyVM: self.historyVM,
+                    snippetsVM: self.snippetsVM
+                )
+            }
         }
     }
 }

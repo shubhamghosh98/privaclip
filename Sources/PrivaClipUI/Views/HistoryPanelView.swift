@@ -260,6 +260,17 @@ public struct HistoryPanelView: View {
                 }
                 .padding(.horizontal, 2)
             }
+            .onChange(of: historyVM.selectedID) { _, newID in
+                guard let newID else { return }
+                withAnimation(.easeInOut(duration: 0.12)) {
+                    proxy.scrollTo(newID, anchor: .center)
+                }
+            }
+        }
+        .onAppear {
+            if historyVM.selectedID == nil {
+                historyVM.selectedID = historyVM.filteredItems.first?.id
+            }
         }
     }
 
