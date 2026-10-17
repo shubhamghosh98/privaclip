@@ -53,12 +53,12 @@ You can install PrivaClip via Homebrew using our dedicated GitHub tap:
 
 ```bash
 # Tap and install in one standard command
-brew install --cask <GITHUB_USERNAME>/tap/privaclip
+brew install --cask shubhamghosh98/tap/privaclip
 ```
 
 Or tap explicitly:
 ```bash
-brew tap <GITHUB_USERNAME>/tap
+brew tap shubhamghosh98/tap
 brew install --cask privaclip
 ```
 
@@ -71,7 +71,7 @@ brew upgrade --cask privaclip
 
 ### Option 2: Direct Release Download
 
-1. Download `PrivaClip-macOS-arm64.zip` from the [Latest GitHub Release](https://github.com/<GITHUB_USERNAME>/privaclip/releases).
+1. Download `PrivaClip-macOS-arm64.zip` from the [Latest GitHub Release](https://github.com/shubhamghosh98/privaclip/releases).
 2. Unzip and drag `PrivaClip.app` into your `/Applications` folder.
 3. Open `PrivaClip.app`.
    - *First Launch Note*: If macOS displays a Gatekeeper prompt for ad-hoc signed releases, right-click `PrivaClip.app` → **Open** → **Open**.
@@ -84,7 +84,7 @@ Requirements: macOS 14+ (Sonoma/Sequoia), Apple Silicon Mac (M1–M4), and Swift
 
 ```bash
 # 1. Clone repository
-git clone https://github.com/<GITHUB_USERNAME>/privaclip.git
+git clone https://github.com/shubhamghosh98/privaclip.git
 cd privaclip
 
 # 2. Run automated verification test suite
@@ -115,21 +115,6 @@ PrivaClip runs unobtrusively from your macOS Menu Bar (`LSUIElement = true`).
 | `⎋` (Escape) | History Panel | Dismiss history panel |
 | `⌘,` | Menu / Panel | Open Preferences Window |
 
----
-
-## 🎨 Interactive Feature Showcase & Demo
-
-To try an interactive simulator of PrivaClip's UI and test the password-dropping shield, live hex color swatches, and snippet template expansions directly in your browser:
-
-```bash
-# Open interactive showcase locally
-open docs/demo.html
-```
-
-You can also use the included recorder script to capture a demo video on your Mac:
-```bash
-./scripts/record_demo.sh
-```
 
 ---
 
